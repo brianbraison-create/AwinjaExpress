@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Awinja Express — Bus Ticket Booking</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    --orange:#F2801E;
+    --orange-dark:#D06810;
+    --orange-tint:#FDECDB;
+    --green:#77C08B;
+    --green-dark:#4E9C64;
+    --green-tint:#E7F6EB;
+    --white:#FFFFFF;
+    --bg:#FFFFFF;
+    --bg-panel:#FFFFFF;
+    --ink:#20261F;
+    --ink-soft:#69736B;
+    --border:#E4E9E3;
+    --danger:#C0402F;
+    --shadow:0 8px 22px rgba(32,38,31,0.07);
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    margin:0 0 0.4em 0;
+    letter-spacing:-0.01em;
+  }
+  a{color:inherit;}
+  button, input, select{font-family:inherit; font-size:1rem;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 20px;}
+
+  /* ---------- Top bar ---------- */
+  header.topbar{
+    position:sticky; top:0; z-index:40;
+    background:var(--orange); color:#fff;
+    padding-top:calc(env(safe-area-inset-top,0px) + 14px);
+    padding-bottom:14px;
+    box-shadow:0 2px 12px rgba(210,104,10,0.25);
+  }
+  .topbar .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:'Space Grotesk'; font-weight:700; font-size:1.25rem;}
+  .brand .mark{
+    width:34px; height:34px; border-radius:8px;
+    background:#fff; color:var(--orange-dark);
+    display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700;
+  }
+  nav.mainnav{display:flex; gap:4px; align-items:center; flex-wrap:wrap;}
+  nav.mainnav button{
+    background:transparent; border:1px solid transparent; color:#FFE9D6;
+    padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:500;
+  }
+  nav.mainnav button:hover{color:#fff; border-color:rgba(255,255,255,0.4);}
+  nav.mainnav button.active{background:rgba(255,255,255,0.18); color:#fff;}
+  .pill-btn{
+    background:#fff; color:var(--orange-dark); border:none; font-weight:600;
+    padding:9px 16px; border-radius:999px; cursor:pointer;
+  }
+  .pill-btn:hover{background:var(--orange-tint);}
+  .ghost-btn{
+    background:transparent; border:1px solid rgba(255,255,255,0.55); color:#fff;
+    padding:8px 15px; border-radius:999px; cursor:pointer; font-weight:500;
+  }
+
+  main{padding:32px 0 80px;}
+  section{display:none;}
+  section.active{display:block;}
+
+  /* ---------- Hero / search ---------- */
+  .hero{
+    background:var(--green-tint); border:1px solid var(--border); color:var(--ink); border-radius:20px;
+    padding:36px 28px; margin-bottom:28px; position:relative; overflow:hidden;
+  }
+  .hero h1{font-size:clamp(1.6rem, 3.5vw, 2.4rem); max-width:20ch;}
+  .hero p{color:var(--ink-soft); max-width:52ch; margin:0 0 20px 0;}
+  .route-line{
+    display:flex; align-items:center; gap:10px; color:var(--orange-dark);
+    font-family:'IBM Plex Mono', monospace; font-size:0.85rem; margin-bottom:18px;
+  }
+  .route-line .dash{flex:1; height:1px; background:repeating-linear-gradient(90deg, var(--orange) 0 6px, transparent 6px 12px); opacity:0.7;}
+
+  form.search-form{
+    display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px;
+    background:var(--white); border-radius:14px; padding:14px; position:relative; z-index:1;
+    box-shadow:var(--shadow); border:1px solid var(--border);
+  }
+  form.search-form label{display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); margin-bottom:4px;}
+  form.search-form select, form.search-form input{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border);
+    background:var(--white); color:var(--ink);
+  }
+  form.search-form button{
+    background:var(--orange); color:#fff; border:none; border-radius:10px; font-weight:600;
+    padding:0 22px; cursor:pointer; white-space:nowrap;
+  }
+  form.search-form button:hover{background:var(--orange-dark);}
+  @media (max-width:760px){
+    form.search-form{grid-template-columns:1fr 1fr;}
+    form.search-form button{grid-column:1/-1;}
+  }
+
+  /* ---------- Cards ---------- */
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:14px;
+    padding:22px; margin-bottom:20px; box-shadow:var(--shadow);
+  }
+  .panel h2{font-size:1.15rem;}
+  .muted{color:var(--ink-soft);}
+  .trip-card{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:12px;
+    background:var(--white);
+  }
+  .trip-card:hover{border-color:var(--orange);}
+  .trip-route{display:flex; align-items:center; gap:10px; font-family:'Space Grotesk'; font-weight:600; font-size:1.05rem;}
+  .trip-route .dash{width:34px; height:1px; background:repeating-linear-gradient(90deg, var(--ink-soft) 0 5px, transparent 5px 10px);}
+  .trip-meta{display:flex; gap:18px; margin-top:8px; font-size:0.85rem; color:var(--ink-soft); flex-wrap:wrap;}
+  .fare{font-family:'Space Grotesk'; font-weight:700; font-size:1.2rem; color:var(--orange-dark);}
+  .seats-left{font-size:0.78rem; padding:3px 9px; border-radius:999px; background:var(--green-tint); color:var(--green-dark); display:inline-block; margin-top:6px;}
+  .seats-low{background:#FBE7E3; color:var(--danger);}
+
+  /* ---------- Buttons generic ---------- */
+  .btn{
+    background:var(--orange); color:#fff; border:none; border-radius:9px; padding:10px 18px;
+    cursor:pointer; font-weight:600;
+  }
+  .btn:hover{background:var(--orange-dark);}
+  .btn.secondary{background:var(--white); border:1px solid var(--border); color:var(--ink);}
+  .btn.secondary:hover{border-color:var(--orange); color:var(--orange-dark);}
+  .btn.green{background:var(--green); color:#173821;}
+  .btn.green:hover{background:var(--green-dark); color:#fff;}
+  .btn.danger{background:transparent; color:var(--danger); border:1px solid var(--danger);}
+  .btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  /* ---------- Seat map ---------- */
+  .bus-shell{
+    max-width:340px; margin:0 auto; border:2px solid var(--border); border-radius:24px 24px 12px 12px;
+    padding:20px 20px 24px; position:relative; background:var(--white);
+  }
+  .wheel-note{text-align:center; font-size:0.75rem; color:var(--ink-soft); margin-bottom:14px; text-transform:uppercase; letter-spacing:0.04em;}
+  .seat-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;}
+  .seat{
+    aspect-ratio:1; border-radius:8px 8px 4px 4px; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:600;
+    cursor:pointer; background:var(--white); color:var(--ink-soft);
+  }
+  .seat.taken{background:repeating-linear-gradient(45deg, var(--border), var(--border) 4px, transparent 4px, transparent 8px); cursor:not-allowed; color:transparent;}
+  .seat.selected{background:var(--green); border-color:var(--green-dark); color:#173821;}
+  .seat.driver{background:transparent; border:none; cursor:default; color:var(--ink-soft); font-size:0.65rem; text-transform:uppercase; letter-spacing:0.03em;}
+  .legend{display:flex; gap:16px; justify-content:center; margin-top:16px; font-size:0.78rem; color:var(--ink-soft); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:12px; height:12px; border-radius:3px; display:inline-block; border:1px solid var(--border);}
+
+  /* ---------- Forms ---------- */
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:0.82rem; color:var(--ink-soft); margin-bottom:5px;}
+  .field input, .field select{
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border);
+    background:var(--white); color:var(--ink);
+  }
+  .field input:focus, .field select:focus, button:focus-visible, .seat:focus-visible{
+    outline:2px solid var(--orange); outline-offset:2px;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:600px){.grid2{grid-template-columns:1fr;}}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(32,38,31,0.45); display:none;
+    align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-backdrop.active{display:flex;}
+  .modal{
+    background:var(--white); border-radius:16px; padding:26px; max-width:440px; width:100%;
+    box-shadow:0 20px 60px rgba(32,38,31,0.3); max-height:90vh; overflow:auto;
+  }
+  .modal-close{float:right; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--ink-soft);}
+  .tabs{display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--border);}
+  .tabs button{background:none; border:none; padding:9px 4px; margin-right:16px; cursor:pointer; color:var(--ink-soft); font-weight:600; border-bottom:2px solid transparent;}
+  .tabs button.active{color:var(--orange-dark); border-color:var(--orange);}
+
+  .error-text{color:var(--danger); font-size:0.85rem; margin-top:6px; min-height:1.1em;}
+  .ok-text{color:var(--green-dark); font-size:0.85rem; margin-top:6px;}
+
+  /* ---------- Ticket ---------- */
+  .ticket{
+    display:flex; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); margin-bottom:18px;
+    border:1px solid var(--border);
+  }
+  .ticket-main{flex:1; background:var(--orange); color:#fff; padding:22px;}
+  .ticket-stub{
+    width:150px; background:var(--white); color:var(--ink); padding:18px 14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    border-left:2px dashed var(--orange-tint); position:relative;
+  }
+  .ticket-stub::before, .ticket-stub::after{
+    content:""; position:absolute; left:-9px; width:18px; height:18px; border-radius:50%; background:var(--bg);
+  }
+  .ticket-stub::before{top:-9px;}
+  .ticket-stub::after{bottom:-9px;}
+  .ticket-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;}
+  .ticket-route{font-family:'Space Grotesk'; font-weight:700; font-size:1.3rem;}
+  .ticket-id{font-family:'IBM Plex Mono'; font-size:0.75rem; color:#FFE9D6;}
+  .ticket-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:10px;}
+  .ticket-grid div span{display:block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; color:#FFE9D6;}
+  .ticket-grid div b{font-family:'Space Grotesk'; font-size:1.05rem;}
+  .ticket-seat-badge{font-family:'Space Grotesk'; font-size:1.6rem; font-weight:700; color:var(--orange-dark);}
+  canvas.barcode{width:100%; height:40px; margin-top:10px;}
+  @media (max-width:520px){.ticket{flex-direction:column;} .ticket-stub{width:100%; border-left:none; border-top:2px dashed var(--orange-tint); flex-direction:row;} .ticket-stub::before{left:50%; top:-9px; transform:translateX(-50%);} .ticket-stub::after{left:auto; right:-9px; bottom:auto; top:-9px;}}
+
+  /* ---------- Payment ---------- */
+  .pay-methods{display:flex; gap:10px; margin-bottom:16px;}
+  .pay-methods button{
+    flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--white);
+    cursor:pointer; font-weight:600; color:var(--ink-soft);
+  }
+  .pay-methods button.active{border-color:var(--orange); color:var(--orange-dark); background:var(--orange-tint);}
+  .spinner{
+    width:34px; height:34px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--orange);
+    animation:spin 0.8s linear infinite; margin:16px auto;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  table.admin-table{width:100%; border-collapse:collapse; font-size:0.88rem;}
+  table.admin-table th, table.admin-table td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--border);}
+  table.admin-table th{color:var(--ink-soft); font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;}
+  .overflow-x{overflow-x:auto;}
+  .stat-row{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px;}
+  .stat{
+    flex:1; min-width:140px; background:var(--white); border:1px solid var(--border); border-radius:12px; padding:16px;
+  }
+  .stat .num{font-family:'Space Grotesk'; font-size:1.7rem; font-weight:700; color:var(--orange-dark);}
+  .stat .lbl{font-size:0.78rem; color:var(--ink-soft);}
+  .badge{font-size:0.72rem; padding:3px 8px; border-radius:999px; background:var(--green-tint); color:var(--green-dark);}
+  .badge.cancelled{background:#FBE9E6; color:var(--danger);}
+  .badge.pending{background:#FFF3DC; color:#8A5A00;}
+  .ticket.is-cancelled{position:relative;}
+  .ticket.is-cancelled .ticket-main, .ticket.is-cancelled .ticket-stub{filter:grayscale(1); opacity:0.55;}
+  .ticket.is-cancelled::after{
+    content:'CANCELLED'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-12deg);
+    font-family:'Space Grotesk'; font-weight:700; font-size:2.2rem; letter-spacing:0.08em;
+    color:var(--danger); border:4px solid var(--danger); border-radius:10px; padding:4px 18px; background:rgba(255,255,255,0.85);
+  }
+  tr.row-cancelled td{color:var(--ink-soft); text-decoration:line-through;}
+  tr.row-cancelled td:nth-last-child(-n+2){text-decoration:none;}
+  .empty-state{text-align:center; padding:40px 20px; color:var(--ink-soft);}
+  footer{text-align:center; color:var(--ink-soft); font-size:0.82rem; padding:20px 0 40px;}
+  .inline-confirm{display:flex; gap:6px; align-items:center;}
+
+  @media print{
+    header, .no-print, footer{display:none !important;}
+    body{background:#fff;}
+    section{display:none !important;}
+    section.print-target.active{display:block !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="mark">AE</span> Awinja Express</div>
+    <nav class="mainnav">
+      <button data-nav="home" class="active">Book a trip</button>
+      <button data-nav="mytickets">My tickets</button>
+      <button data-nav="admin">Admin</button>
+    </nav>
+    <div id="authArea" class="no-print"></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- HOME / SEARCH -->
+  <section id="view-home" class="active">
+    <div class="hero">
+      <div class="route-line"><span>NRB</span><span class="dash"></span><span>MSA</span><span class="dash"></span><span>KSM</span><span class="dash"></span><span>NAK</span></div>
+      <h1>Book your seat before the queue does.</h1>
+      <p>Search live departures across our network, pick your seat on the actual bus layout, and pay by M-Pesa or card — no ticket office needed.</p>
+      <form class="search-form" id="searchForm">
+        <div>
+          <label for="fromSel">From</label>
+          <select id="fromSel" required></select>
+        </div>
+        <div>
+          <label for="toSel">To</label>
+          <select id="toSel" required></select>
+        </div>
+        <div>
+          <label for="dateInp">Travel date</label>
+          <input type="date" id="dateInp" required>
+        </div>
+        <button type="submit">Search trips</button>
+      </form>
+      <p class="error-text" id="searchErr"></p>
+    </div>
+
+    <div class="panel" id="resultsPanel" style="display:none;">
+      <h2 id="resultsTitle">Available departures</h2>
+      <div id="resultsList"></div>
+    </div>
+  </section>
+
+  <!-- SEATS -->
+  <section id="view-seats">
+    <button class="btn secondary no-print" id="backToResults" style="margin-bottom:16px;">Back to search</button>
+    <div class="panel">
+      <h2 id="seatsTripTitle">Choose your seat</h2>
+      <p class="muted" id="seatsTripSub"></p>
+      <div class="bus-shell">
+        <div class="wheel-note">Front of bus</div>
+        <div class="seat-grid" id="seatGrid"></div>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--white);"></span> Available</span>
+        <span><span class="swatch" style="background:var(--green);"></span> Selected</span>
+        <span><span class="swatch" style="background:var(--border);"></span> Taken</span>
+      </div>
+      <div style="text-align:center; margin-top:18px;">
+        <p class="muted">Selected: <b id="selectedSeatsLabel">none</b></p>
+        <button class="btn" id="proceedToDetails" disabled>Continue to passenger details</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASSENGER DETAILS -->
+  <section id="view-details">
+    <button class="btn secondary no-print" id="backToSeats" style="margin-bottom:16px;">Back to seats</button>
+    <div class="panel" style="max-width:520px; margin:0 auto;">
+      <h2>Passenger details</h2>
+      <form id="detailsForm">
+        <div class="field">
+          <label for="passName">Full name</label>
+          <input type="text" id="passName" required>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="passPhone">Phone number</label>
+            <input type="tel" id="passPhone" placeholder="07XX XXX XXX" required>
+          </div>
+          <div class="field">
+            <label for="passId">National ID</label>
+            <input type="text" id="passId" required>
+          </div>
+        </div>
+        <button class="btn" type="submit" style="width:100%;">Continue to payment</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- PAYMENT -->
+  <section id="view-payment">
+    <button class="btn secondary no-print" id="backToDetails" style="margin-bottom:16px;">Back</button>
+    <div class="panel" style="max-width:520px; margin:0 auto;">
+      <h2>Pay for your ticket</h2>
+      <p class="muted">Total due: <b id="payAmount" style="color:var(--ink);"></b></p>
+      <div class="pay-methods">
+        <button type="button" data-method="mpesa" class="active">M-Pesa</button>
+        <button type="button" data-method="card" disabled title="Coming soon">Card (soon)</button>
+      </div>
+
+      <div id="mpesaPane">
+        <div class="field">
+          <label for="mpesaPhone">M-Pesa phone number</label>
+          <input type="tel" id="mpesaPhone" placeholder="07XX XXX XXX">
+        </div>
+        <button class="btn" id="mpesaPayBtn" style="width:100%;">Send STK push</button>
+      </div>
+
+      <div id="cardPane" style="display:none;">
+        <div class="field">
+          <label for="cardNumber">Card number</label>
+          <input type="text" id="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19">
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="cardExp">Expiry</label>
+            <input type="text" id="cardExp" placeholder="MM/YY" maxlength="5">
+          </div>
+          <div class="field">
+            <label for="cardCvv">CVV</label>
+            <input type="text" id="cardCvv" placeholder="123" maxlength="3">
+          </div>
+        </div>
+        <button class="btn" id="cardPayBtn" style="width:100%;">Pay now</button>
+      </div>
+
+      <div id="payStatus" style="text-align:center;"></div>
+    </div>
+  </section>
+
+  <!-- TICKET (also used as print target) -->
+  <section id="view-ticket" class="print-target">
+    <div class="panel no-print" style="background:transparent; border:none; box-shadow:none; padding:0 0 14px;">
+      <h2 id="ticketHeading">Your ticket is confirmed</h2>
+      <p class="muted" id="ticketSub">Keep this ticket handy — show it at boarding.</p>
+    </div>
+    <div id="ticketMount"></div>
+    <div class="no-print" style="text-align:center; margin-top:6px;">
+      <button class="btn" id="printTicketBtn">Print / save as PDF</button>
+      <button class="btn secondary" data-nav="home">Book another trip</button>
+      <button class="btn secondary" data-nav="admin" id="ticketBackAdmin" style="display:none;">Back to admin</button>
+    </div>
+  </section>
+
+  <!-- MY TICKETS -->
+  <section id="view-mytickets">
+    <div class="panel">
+      <h2>My tickets</h2>
+      <div id="myTicketsList"></div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="view-admin">
+    <div id="adminLoggedOut" class="panel" style="max-width:420px; margin:0 auto;">
+      <h2>Admin sign in</h2>
+      <p class="muted">Manage routes, schedules and view bookings.</p>
+      <form id="adminLoginForm">
+        <div class="field">
+          <label for="adminUser">Username</label>
+          <input type="text" id="adminUser" required>
+        </div>
+        <div class="field">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" required>
+        </div>
+        <p class="error-text" id="adminLoginErr"></p>
+        <button class="btn" style="width:100%;">Sign in</button>
+      </form>
+      <p class="muted" style="font-size:0.78rem; margin-top:14px;">Demo credentials: <b>admin</b> / <b>admin123</b></p>
+    </div>
+
+    <div id="adminLoggedIn" style="display:none;">
+      <div class="stat-row" id="adminStats"></div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+        <button class="btn green" id="openWalkin">Book ticket for walk-in customer</button>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <h2>Routes and schedules</h2>
+          <button class="btn" id="openAddRoute">Add route</button>
+        </div>
+        <div class="overflow-x">
+          <table class="admin-table" id="routesTable">
+            <thead><tr><th>From</th><th>To</th><th>Time</th><th>Bus type</th><th>Fare</th><th>Seats</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>All bookings</h2>
+        <div class="overflow-x">
+          <table class="admin-table" id="bookingsTable">
+            <thead><tr><th>Ticket</th><th>Passenger</th><th>Route</th><th>Date</th><th>Seat</th><th>Fare</th><th>Paid via</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <button class="btn secondary" id="adminLogoutBtn">Sign out of admin</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="no-print">Awinja Express · Computerised Bus Ticket Booking Management System · demo data stored only in this browser</footer>
+
+<!-- AUTH MODAL -->
+<div class="modal-backdrop" id="authModal">
+  <div class="modal">
+    <button class="modal-close" id="closeAuthModal" aria-label="Close">×</button>
+    <div class="tabs">
+      <button data-tab="login" class="active">Log in</button>
+      <button data-tab="register">Create account</button>
+    </div>
+    <form id="loginForm">
+      <div class="field"><label for="loginPhone">Phone number</label><input type="tel" id="loginPhone" placeholder="07XX XXX XXX" required></div>
+      <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass" required></div>
+      <p class="error-text" id="loginErr"></p>
+      <button class="btn" style="width:100%;">Log in</button>
+    </form>
+    <form id="registerForm" style="display:none;">
+      <div class="field"><label for="regName">Full name</label><input type="text" id="regName" required></div>
+      <div class="field"><label for="regPhone">Phone number</label><input type="tel" id="regPhone" placeholder="07XX XXX XXX" required></div>
+      <div class="field"><label for="regPass">Password</label><input type="password" id="regPass" minlength="4" required></div>
+      <p class="error-text" id="regErr"></p>
+      <button class="btn" style="width:100%;">Create account</button>
+    </form>
+  </div>
+</div>
+
+<!-- ADD / EDIT ROUTE MODAL -->
+<div class="modal-backdrop" id="routeModal">
+  <div class="modal">
+    <button class="modal-close" id="closeRouteModal" aria-label="Close">×</button>
+    <h2>Add a route</h2>
+    <form id="routeForm">
+      <div class="grid2">
+        <div class="field">
+          <label for="rtFrom">From</label>
+          <select id="rtFrom" required></select>
+        </div>
+        <div class="field">
+          <label for="rtTo">To</label>
+          <select id="rtTo" required></select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="rtTime">Departure time</label>
+          <input type="time" id="rtTime" required>
+        </div>
+        <div class="field">
+          <label for="rtDuration">Journey duration</label>
+          <input type="text" id="rtDuration" placeholder="e.g. 5h 00m" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rtBusType">Bus type</label>
+        <input type="text" id="rtBusType" placeholder="e.g. Executive (2+2)" required>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="rtFare">Fare (KSh)</label>
+          <input type="number" id="rtFare" min="1" required>
+        </div>
+        <div class="field">
+          <label for="rtSeats">Total seats</label>
+          <input type="number" id="rtSeats" min="4" max="80" required>
+        </div>
+      </div>
+      <p class="error-text" id="routeFormErr"></p>
+      <button class="btn" style="width:100%;">Save route</button>
+    </form>
+  </div>
+</div>
+
+<!-- WALK-IN BOOKING MODAL (admin) -->
+<div class="modal-backdrop" id="walkinModal">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" id="closeWalkinModal" aria-label="Close">×</button>
+    <h2>Book for a walk-in customer</h2>
+    <p class="muted" style="margin-bottom:14px;">For customers paying at the office. Choose the trip and seats, take payment, then issue the ticket.</p>
+    <form id="walkinForm">
+      <div class="field">
+        <label for="wiRoute">Trip</label>
+        <select id="wiRoute" required></select>
+      </div>
+      <div class="field">
+        <label for="wiDate">Travel date</label>
+        <input type="date" id="wiDate" required>
+      </div>
+      <div class="bus-shell">
+        <div class="wheel-note">Front of bus</div>
+        <div class="seat-grid" id="wiSeatGrid"></div>
+      </div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--white);"></span> Available</span>
+        <span><span class="swatch" style="background:var(--green);"></span> Selected</span>
+        <span><span class="swatch" style="background:var(--border);"></span> Taken</span>
+      </div>
+      <p class="muted" style="text-align:center; margin:12px 0 16px;">Selected: <b id="wiSelected">none</b> · Total: <b id="wiTotal">KSh 0</b></p>
+      <div class="field">
+        <label for="wiName">Passenger full name</label>
+        <input type="text" id="wiName" required>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="wiPhone">Phone number</label>
+          <input type="tel" id="wiPhone" placeholder="07XX XXX XXX" required>
+        </div>
+        <div class="field">
+          <label for="wiId">National ID</label>
+          <input type="text" id="wiId" required>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="wiMethod">Payment received as</label>
+          <select id="wiMethod">
+            <option value="Cash">Cash</option>
+            <option value="M-Pesa">M-Pesa</option>
+            <option value="Card">Card (POS)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="wiRef">Payment reference (optional)</label>
+          <input type="text" id="wiRef" placeholder="e.g. M-Pesa code">
+        </div>
+      </div>
+      <p class="error-text" id="wiErr"></p>
+      <button class="btn" style="width:100%;">Issue ticket</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+  // Supabase > Project Settings > API. The anon key is safe in the browser (RLS protects data).
+  window.AWINJA_CONFIG = { SUPABASE_URL: "https://YOUR-PROJECT.supabase.co", SUPABASE_ANON_KEY: "YOUR-ANON-KEY" };
+</script>
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- storage helpers ---------------- */
+  const LS = {
+    get(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } },
+    set(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+  };
+  const KEYS = { users:'awinja_users_v1', routes:'awinja_routes_v2', bookings:'awinja_bookings_v1', session:'awinja_session_v1' };
+
+  async function sha256(text){
+    try{
+      if(window.crypto && crypto.subtle){
+        const enc = new TextEncoder().encode(text);
+        const buf = await crypto.subtle.digest('SHA-256', enc);
+        return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+      }
+    }catch(e){}
+    // Fallback for insecure (plain http) contexts where crypto.subtle is unavailable
+    let h = 5381; for(let i=0;i<text.length;i++) h = ((h<<5)+h+text.charCodeAt(i))|0;
+    return 'weak-' + (h>>>0).toString(16);
+  }
+  function uid(prefix){ return prefix + '-' + Math.random().toString(36).slice(2,8).toUpperCase().padEnd(6,'0'); }
+  function money(n){ return 'KSh ' + Number(n).toLocaleString(); }
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  // Local calendar date (toISOString() is UTC and gives yesterday's date in Kenya between 00:00 and 03:00)
+  function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+  function nowHM(){ const d=new Date(); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function normalizePhone(p){
+    let d = String(p||'').replace(/[^\d+]/g,'');
+    if(d.startsWith('+254')) d = '0'+d.slice(4);
+    else if(d.startsWith('254') && d.length===12) d = '0'+d.slice(3);
+    return d;
+  }
+  function validPhone(p){ return /^0[17]\d{8}$/.test(normalizePhone(p)); }
+
+  /* ---------------- seed data ---------------- */
+  const TOWNS = ["Nairobi","Mombasa","Kisumu","Nakuru","Eldoret","Kitale","Malindi","Busia"];
+  function seedRoutes(){
+    return [
+      {id: uid('RT'), from:"Nairobi", to:"Mombasa", time:"07:00", duration:"8h 30m", busType:"VIP Coach (2+2)", fare:1800, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Mombasa", time:"21:30", duration:"8h 45m", busType:"Executive (2+2)", fare:1500, totalSeats:36},
+      {id: uid('RT'), from:"Mombasa", to:"Nairobi", time:"08:00", duration:"8h 30m", busType:"VIP Coach (2+2)", fare:1800, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Kisumu", time:"08:30", duration:"6h 15m", busType:"Executive (2+2)", fare:1400, totalSeats:36},
+      {id: uid('RT'), from:"Kisumu", to:"Nairobi", time:"19:00", duration:"6h 15m", busType:"Executive (2+2)", fare:1400, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Nakuru", time:"10:00", duration:"2h 10m", busType:"Shuttle (2+2)", fare:600, totalSeats:32},
+      {id: uid('RT'), from:"Nairobi", to:"Eldoret", time:"09:15", duration:"5h 00m", busType:"Executive (2+2)", fare:1200, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Kitale", time:"13:00", duration:"6h 30m", busType:"Standard (2+2)", fare:1300, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Malindi", time:"18:00", duration:"9h 30m", busType:"VIP Coach (2+2)", fare:2000, totalSeats:36},
+      {id: uid('RT'), from:"Nairobi", to:"Busia", time:"08:00", duration:"7h 45m", busType:"Standard (2+2)", fare:1350, totalSeats:36}
+    ];
+  }
+  const ADMIN_CREDENTIALS = { username:'admin', password:'admin123' };
+
+  const CFG = window.AWINJA_CONFIG;
+  const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const toEmail = p => '254' + normalizePhone(p).slice(1) + '@awinja.app'; // phone login via Supabase email auth
+  let routes = [], bookings = [], users = [];
+  let session = null; // {phone, name}
+  function toRecord(x){
+    const r = x.routes || {};
+    return {ticketId:x.ticket_id, bookingId:x.booking_id, routeId:x.route_id, from:r.origin, to:r.destination, time:r.depart_time,
+      busType:r.bus_type, date:x.travel_date, seat:x.seat, fare:x.fare, passenger:x.passenger, phone:x.phone, idNumber:x.id_number,
+      method:x.method, ownerPhone: session && session.phone, bookedAt:x.booked_at, status:x.status};
+  }
+  // Pull routes, taken seats (everyone) and the logged-in user's own bookings from Supabase
+  async function syncFromServer(){
+    const [r, t] = await Promise.all([sb.from('routes').select('*').eq('active', true), sb.from('taken_seats').select('*')]);
+    if(r.data) routes = r.data.map(x=>({id:x.id, from:x.origin, to:x.destination, time:x.depart_time, duration:x.duration, busType:x.bus_type, fare:x.fare, totalSeats:x.total_seats}));
+    let list = (t.data||[]).map(x=>({routeId:x.route_id, date:x.travel_date, seat:x.seat, status:'confirmed'}));
+    if(session){
+      const m = await sb.from('bookings').select('*, routes(origin,destination,depart_time,bus_type)').order('booked_at', {ascending:false});
+      if(m.data){
+        const mine = m.data.map(toRecord), own = new Set(mine.map(b=>b.routeId+b.date+b.seat));
+        list = list.filter(x=>!own.has(x.routeId+x.date+x.seat)).concat(mine);
+      }
+    }
+    bookings = list;
+  }
+  let adminSession = false;
+
+  // Always work from the latest saved data so two open tabs can't overwrite each other's changes
+  function refreshData(){ /* data now lives in Supabase; see syncFromServer() */ }
+  function newTicketId(){
+    let id; do { id = uid('AWX'); } while(bookings.some(b=>b.ticketId===id));
+    return id;
+  }
+
+  /* ---------------- nav ---------------- */
+  const sections = { home:'view-home', seats:'view-seats', details:'view-details', payment:'view-payment', ticket:'view-ticket', mytickets:'view-mytickets', admin:'view-admin' };
+  function showView(name){
+    if(name!=='ticket') document.getElementById('ticketBackAdmin').style.display='none';
+    if(name!=='payment') clearPay();
+    Object.values(sections).forEach(id=>document.getElementById(id).classList.remove('active'));
+    document.getElementById(sections[name]).classList.add('active');
+    document.querySelectorAll('nav.mainnav button').forEach(b=>b.classList.toggle('active', b.dataset.nav===name));
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(name==='home' && document.getElementById('resultsPanel').style.display==='block') runSearch();
+    if(name==='mytickets') renderMyTickets();
+    if(name==='admin') renderAdmin();
+  }
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = btn.dataset.nav;
+      if((target==='mytickets') && !session){ openAuthModal('login'); return; }
+      showView(target);
+    });
+  });
+
+  /* ---------------- auth UI ---------------- */
+  const authModal = document.getElementById('authModal');
+  function openAuthModal(tab){
+    authModal.classList.add('active');
+    setAuthTab(tab||'login');
+  }
+  function closeAuthModal(){ authModal.classList.remove('active'); document.getElementById('loginErr').textContent=''; document.getElementById('regErr').textContent=''; }
+  document.getElementById('closeAuthModal').addEventListener('click', closeAuthModal);
+  authModal.addEventListener('click', e=>{ if(e.target===authModal) closeAuthModal(); });
+
+  function setAuthTab(tab){
+    document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    document.getElementById('loginForm').style.display = tab==='login' ? 'block':'none';
+    document.getElementById('registerForm').style.display = tab==='register' ? 'block':'none';
+  }
+  document.querySelectorAll('.tabs [data-tab]').forEach(b=> b.addEventListener('click', ()=>setAuthTab(b.dataset.tab)));
+
+  function renderAuthArea(){
+    const el = document.getElementById('authArea');
+    el.innerHTML = '';
+    if(session){
+      const span = document.createElement('span');
+      span.style.color = '#FFE9D6'; span.style.marginRight = '10px'; span.style.fontSize='0.9rem';
+      span.textContent = 'Hi, ' + session.name.split(' ')[0];
+      const btn = document.createElement('button');
+      btn.className='ghost-btn'; btn.textContent='Log out';
+      btn.addEventListener('click', ()=>{ sb.auth.signOut(); session=null; bookings=[]; renderAuthArea(); showView('home'); });
+      el.appendChild(span); el.appendChild(btn);
+    } else {
+      const btn = document.createElement('button');
+      btn.className='pill-btn'; btn.textContent='Log in / Sign up';
+      btn.addEventListener('click', ()=>openAuthModal('login'));
+      el.appendChild(btn);
+    }
+  }
+
+  document.getElementById('registerForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    refreshData();
+    const name = document.getElementById('regName').value.trim();
+    const phone = normalizePhone(document.getElementById('regPhone').value);
+    const pass = document.getElementById('regPass').value;
+    const errEl = document.getElementById('regErr');
+    if(!name){ errEl.textContent='Enter your full name.'; return; }
+    if(!validPhone(phone)){ errEl.textContent='Enter a valid Kenyan phone number (07XX XXX XXX or 01XX XXX XXX).'; return; }
+    if(users.some(u=>normalizePhone(u.phone)===phone)){ errEl.textContent='An account with this phone number already exists.'; return; }
+    const {error} = await sb.auth.signUp({email:toEmail(phone), password:pass, options:{data:{name, phone}}});
+    if(error){ errEl.textContent = error.message; return; }
+    session = {name, phone};
+    renderAuthArea(); closeAuthModal();
+    document.getElementById('registerForm').reset();
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    refreshData();
+    const phone = normalizePhone(document.getElementById('loginPhone').value);
+    const pass = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginErr');
+    const {data, error} = await sb.auth.signInWithPassword({email:toEmail(phone), password:pass});
+    if(error){ errEl.textContent='Incorrect phone number or password.'; return; }
+    session = {name:data.user.user_metadata.name, phone};
+    renderAuthArea(); closeAuthModal();
+    document.getElementById('loginForm').reset();
+  });
+
+  /* ---------------- search ---------------- */
+  const fromSel = document.getElementById('fromSel');
+  const toSel = document.getElementById('toSel');
+  TOWNS.forEach(t=>{
+    fromSel.appendChild(new Option(t,t));
+    toSel.appendChild(new Option(t,t));
+  });
+  fromSel.value = "Nairobi"; toSel.value = "Mombasa";
+  document.getElementById('dateInp').value = todayISO();
+  document.getElementById('dateInp').min = todayISO();
+
+  let currentBooking = {}; // built up through the flow
+
+  document.getElementById('searchForm').addEventListener('submit', e=>{ e.preventDefault(); runSearch(); });
+
+  async function runSearch(){
+    await syncFromServer();
+    const errEl = document.getElementById('searchErr');
+    errEl.textContent = '';
+    const from = fromSel.value, to = toSel.value, date = document.getElementById('dateInp').value;
+    if(from===to){ errEl.textContent = 'Please choose two different towns.'; return; }
+    if(!date){ errEl.textContent = 'Please choose a travel date.'; return; }
+    if(date < todayISO()){ errEl.textContent = 'That date has already passed. Please choose today or a later date.'; return; }
+    const matches = routes.filter(r=>r.from===from && r.to===to);
+    const panel = document.getElementById('resultsPanel');
+    const list = document.getElementById('resultsList');
+    document.getElementById('resultsTitle').textContent = `${from} to ${to} on ${date}`;
+    list.innerHTML = '';
+    panel.style.display = 'block';
+    if(matches.length===0){
+      list.innerHTML = `<div class="empty-state">No direct departures for this route yet. Try another pair of towns, or add one from the Admin tab.</div>`;
+      return;
+    }
+    matches.forEach(r=>{
+      const takenCount = bookings.filter(b=>b.status!=='cancelled' && b.routeId===r.id && b.date===date).length;
+      const left = Math.max(0, r.totalSeats - takenCount);
+      const departed = date===todayISO() && r.time <= nowHM();
+      const unavailable = left<=0 || departed;
+      const card = document.createElement('div');
+      card.className='trip-card';
+      card.innerHTML = `
+        <div>
+          <div class="trip-route"><span>${esc(r.from)}</span><span class="dash"></span><span>${esc(r.to)}</span></div>
+          <div class="trip-meta">
+            <span>Departs ${esc(r.time)}</span>
+            <span>${esc(r.duration)}</span>
+            <span>${esc(r.busType)}</span>
+          </div>
+          <span class="seats-left ${left<=5||departed?'seats-low':''}">${departed?'Already departed':(left>0?left+' seats left':'Fully booked')}</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="fare">${money(r.fare)}</div>
+          <button class="btn" ${unavailable?'disabled':''} data-select-route="${esc(r.id)}" data-date="${esc(date)}">Select seat</button>
+        </div>`;
+      list.appendChild(card);
+    });
+    list.querySelectorAll('[data-select-route]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(!session){ openAuthModal('login'); return; }
+        const route = routes.find(r=>r.id===btn.dataset.selectRoute);
+        if(!route){ return; }
+        currentBooking = { route, date: btn.dataset.date, seats:[] };
+        document.getElementById('detailsForm').reset();
+        openSeatMap();
+      });
+    });
+  }
+
+  /* ---------------- seat map ---------------- */
+  async function openSeatMap(){
+    await syncFromServer();
+    const {route, date} = currentBooking;
+    document.getElementById('seatsTripTitle').textContent = `${route.from} to ${route.to}`;
+    document.getElementById('seatsTripSub').textContent = `${date} · departs ${route.time} · ${route.busType} · ${money(route.fare)} per seat`;
+    const takenSeats = new Set(bookings.filter(b=>b.status!=='cancelled' && b.routeId===route.id && b.date===date).map(b=>b.seat));
+    const keep = (currentBooking.seats||[]).filter(n=>!takenSeats.has(n));
+    currentBooking.seats = keep.slice();
+    const grid = document.getElementById('seatGrid');
+    grid.innerHTML = '';
+    const rows = Math.ceil(route.totalSeats/4);
+    // driver row
+    const driverDiv = document.createElement('div'); driverDiv.className='seat driver'; driverDiv.textContent='Driver'; driverDiv.style.gridColumn='4/5';
+    grid.appendChild(document.createElement('div'));
+    grid.appendChild(document.createElement('div'));
+    grid.appendChild(document.createElement('div'));
+    grid.appendChild(driverDiv);
+    let seatNum = 1;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<4;c++){
+        if(seatNum>route.totalSeats){ grid.appendChild(document.createElement('div')); continue; }
+        const label = seatNum;
+        const seatEl = document.createElement('button');
+        seatEl.type='button';
+        seatEl.className='seat';
+        seatEl.textContent = label;
+        seatEl.dataset.seat = label;
+        if(takenSeats.has(label)){ seatEl.classList.add('taken'); seatEl.disabled=true; }
+        else if(keep.includes(label)){ seatEl.classList.add('selected'); }
+        seatEl.addEventListener('click', ()=>{
+          seatEl.classList.toggle('selected');
+          const idx = currentBooking.seats.indexOf(label);
+          if(seatEl.classList.contains('selected') && idx===-1) currentBooking.seats.push(label);
+          if(!seatEl.classList.contains('selected') && idx!==-1) currentBooking.seats.splice(idx,1);
+          updateSeatSelectionUI();
+        });
+        grid.appendChild(seatEl);
+        seatNum++;
+      }
+    }
+    updateSeatSelectionUI();
+    showView('seats');
+  }
+  function updateSeatSelectionUI(){
+    const seats = currentBooking.seats.slice().sort((a,b)=>a-b);
+    document.getElementById('selectedSeatsLabel').textContent = seats.length ? seats.join(', ') : 'none';
+    document.getElementById('proceedToDetails').disabled = seats.length===0;
+  }
+  document.getElementById('backToResults').addEventListener('click', ()=>showView('home'));
+  document.getElementById('proceedToDetails').addEventListener('click', ()=>{
+    const pn = document.getElementById('passName'), pp = document.getElementById('passPhone');
+    if(!pn.value) pn.value = session.name;
+    if(!pp.value) pp.value = session.phone;
+    showView('details');
+  });
+
+  /* ---------------- passenger details ---------------- */
+  document.getElementById('backToSeats').addEventListener('click', ()=>openSeatMap());
+  document.getElementById('detailsForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    currentBooking.passenger = {
+      name: document.getElementById('passName').value.trim(),
+      phone: document.getElementById('passPhone').value.trim(),
+      idNumber: document.getElementById('passId').value.trim()
+    };
+    resetPayUI();
+    const total = currentBooking.route.fare * currentBooking.seats.length;
+    document.getElementById('payAmount').textContent = `${money(total)} for seat(s) ${currentBooking.seats.join(', ')}`;
+    document.getElementById('mpesaPhone').value = currentBooking.passenger.phone;
+    showView('payment');
+  });
+
+  /* ---------------- payment ---------------- */
+  let payTimers = [];
+  function resetPayUI(){
+    document.getElementById('payStatus').innerHTML = '';
+    document.getElementById('mpesaPayBtn').disabled = false;
+    document.getElementById('cardPayBtn').disabled = false;
+  }
+  function clearPay(){ payTimers.forEach(clearTimeout); payTimers = []; resetPayUI(); }
+  function payLater(fn, ms){ payTimers.push(setTimeout(fn, ms)); }
+
+  document.getElementById('backToDetails').addEventListener('click', ()=>showView('details'));
+  document.querySelectorAll('.pay-methods button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.pay-methods button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('mpesaPane').style.display = btn.dataset.method==='mpesa' ? 'block':'none';
+      document.getElementById('cardPane').style.display = btn.dataset.method==='card' ? 'block':'none';
+      document.getElementById('payStatus').innerHTML = '';
+    });
+  });
+
+  function finalizeBooking(method){
+    refreshData();
+    const statusEl = document.getElementById('payStatus');
+    if(!session){ clearPay(); showView('home'); openAuthModal('login'); return; }
+    const {route, date, seats, passenger} = currentBooking;
+    // Re-check availability: someone else may have taken a seat while payment was processing
+    const takenNow = new Set(bookings.filter(b=>b.status!=='cancelled' && b.routeId===route.id && b.date===date).map(b=>b.seat));
+    const clash = seats.filter(n=>takenNow.has(n));
+    if(clash.length){
+      statusEl.innerHTML = `<p class="error-text">Seat${clash.length>1?'s':''} ${clash.join(', ')} ${clash.length>1?'were':'was'} just booked by someone else. Please go back and choose again. You have not been charged.</p>`;
+      document.getElementById('mpesaPayBtn').disabled = false;
+      document.getElementById('cardPayBtn').disabled = false;
+      return;
+    }
+    const createdSeats = [];
+    const bookingId = uid('BK');
+    seats.forEach(seat=>{
+      const record = {
+        ticketId: newTicketId(), bookingId,
+        routeId: route.id, from:route.from, to:route.to, time:route.time, busType:route.busType,
+        date, seat, fare:route.fare,
+        passenger: passenger.name, phone:passenger.phone, idNumber:passenger.idNumber,
+        method, ownerPhone: session.phone, bookedAt: new Date().toISOString()
+      };
+      bookings.push(record);
+      createdSeats.push(record);
+    });
+    LS.set(KEYS.bookings, bookings);
+    currentBooking.records = createdSeats;
+    ['cardNumber','cardExp','cardCvv'].forEach(id=>document.getElementById(id).value='');
+    renderTicket(createdSeats);
+    showView('ticket');
+  }
+
+  document.getElementById('mpesaPayBtn').addEventListener('click', async ()=>{
+    const phone = normalizePhone(document.getElementById('mpesaPhone').value);
+    const statusEl = document.getElementById('payStatus');
+    const btn = document.getElementById('mpesaPayBtn');
+    const fail = msg => { statusEl.innerHTML = `<p class="error-text">${esc(msg)}</p>`; btn.disabled = false; };
+    if(!session){ showView('home'); openAuthModal('login'); return; }
+    if(!validPhone(phone)){ fail('Enter a valid M-Pesa number (07XX XXX XXX or 01XX XXX XXX).'); return; }
+    btn.disabled = true;
+    statusEl.innerHTML = `<div class="spinner"></div><p class="muted">Sending STK push…</p>`;
+    const {route, date, seats, passenger} = currentBooking;
+    const {data, error} = await sb.functions.invoke('mpesa-stk-push', {body:{routeId:route.id, date, seats, phone, passenger}});
+    if(error || !data || !data.paymentId){
+      let msg = 'Could not start payment. Please try again.';
+      try{ const b = await error.context.json(); if(b.error) msg = b.error; }catch(e){}
+      fail(msg); return;
+    }
+    statusEl.innerHTML = `<div class="spinner"></div><p class="muted">STK push sent to ${esc(phone)}.<br>Enter your M-Pesa PIN on your phone…</p>`;
+    for(let i=0; i<45; i++){ // wait up to ~90s for Safaricom's callback
+      await new Promise(r=>setTimeout(r, 2000));
+      if(!document.getElementById('view-payment').classList.contains('active')) return;
+      const {data:p} = await sb.from('payments').select('status,result_desc,booking_id').eq('id', data.paymentId).single();
+      if(!p || p.status==='pending') continue;
+      if(p.status==='paid'){
+        await syncFromServer();
+        const recs = bookings.filter(b=>b.bookingId===p.booking_id).sort((a,b)=>a.seat-b.seat);
+        currentBooking.records = recs; renderTicket(recs); showView('ticket'); return;
+      }
+      if(p.status==='paid_conflict'){ fail('Payment received but the seat was just taken. Contact Awinja Express for a refund.'); return; }
+      fail(p.result_desc || 'Payment was cancelled or failed. You have not been charged.'); return;
+    }
+    fail('No confirmation received yet. If money was deducted, check My tickets shortly or contact us.');
+  });
+
+  document.getElementById('cardPayBtn').addEventListener('click', ()=>{
+    const num = document.getElementById('cardNumber').value.replace(/[\s-]/g,'');
+    const exp = document.getElementById('cardExp').value.trim();
+    const cvv = document.getElementById('cardCvv').value.trim();
+    const statusEl = document.getElementById('payStatus');
+    const em = /^(\d{2})\/(\d{2})$/.exec(exp);
+    let expOk = false;
+    if(em){
+      const mm = Number(em[1]), yy = 2000 + Number(em[2]), now = new Date();
+      expOk = mm>=1 && mm<=12 && (yy > now.getFullYear() || (yy===now.getFullYear() && mm >= now.getMonth()+1));
+    }
+    if(!/^\d{12,19}$/.test(num) || !expOk || !/^\d{3}$/.test(cvv)){
+      statusEl.innerHTML = `<p class="error-text">Enter valid card details (digits only, expiry as MM/YY and not in the past).</p>`; return;
+    }
+    statusEl.innerHTML = `<div class="spinner"></div><p class="muted">Authorising card payment…</p>`;
+    document.getElementById('cardPayBtn').disabled = true;
+    payLater(()=>{
+      statusEl.innerHTML = `<p class="ok-text">Card payment approved.</p>`;
+      payLater(()=>finalizeBooking('Card'), 600);
+    }, 1800);
+  });
+
+  /* ---------------- ticket rendering ---------------- */
+  function drawBarcode(canvas, seedStr){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width = canvas.clientWidth * 2;
+    const h = canvas.height = 80;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+    let seed = 0; for(let i=0;i<seedStr.length;i++) seed += seedStr.charCodeAt(i)*(i+1);
+    let x = 4;
+    ctx.fillStyle = '#20261F';
+    while(x < w-4){
+      seed = (seed*9301+49297) % 233280;
+      const barW = 2 + (seed % 6);
+      if(seed % 3 !== 0) ctx.fillRect(x, 6, barW, h-12);
+      x += barW + 3;
+    }
+  }
+  function renderTicket(records){
+    const mount = document.getElementById('ticketMount');
+    mount.innerHTML = '';
+    const allCancelled = records.length>0 && records.every(r=>r.status==='cancelled');
+    document.getElementById('ticketHeading').textContent = allCancelled ? 'This ticket has been cancelled' : 'Your ticket is confirmed';
+    document.getElementById('ticketSub').textContent = allCancelled ? 'It is no longer valid for boarding.' : 'Keep this ticket handy — show it at boarding.';
+    records.forEach(rec=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'ticket' + (rec.status==='cancelled' ? ' is-cancelled' : '');
+      wrap.innerHTML = `
+        <div class="ticket-main">
+          <div class="ticket-top">
+            <div>
+              <div class="ticket-route">${esc(rec.from)} to ${esc(rec.to)}</div>
+              <div class="muted" style="color:#FFE9D6;">${esc(rec.busType)}</div>
+            </div>
+            <div class="ticket-id">${esc(rec.ticketId)}</div>
+          </div>
+          <div class="ticket-grid">
+            <div><span>Passenger</span><b>${esc(rec.passenger)}</b></div>
+            <div><span>Date</span><b>${esc(rec.date)}</b></div>
+            <div><span>Departs</span><b>${esc(rec.time)}</b></div>
+            <div><span>Fare paid</span><b>${money(rec.fare)}</b></div>
+            <div><span>Paid via</span><b>${esc(rec.method)}</b></div>
+            <div><span>ID number</span><b>${esc(rec.idNumber)}</b></div>
+          </div>
+          <canvas class="barcode"></canvas>
+        </div>
+        <div class="ticket-stub">
+          <div class="muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.04em;">Seat</div>
+          <div class="ticket-seat-badge">${esc(rec.seat)}</div>
+          <div class="muted" style="font-size:0.7rem; text-align:center;">Awinja<br>Express</div>
+        </div>`;
+      mount.appendChild(wrap);
+      requestAnimationFrame(()=>drawBarcode(wrap.querySelector('canvas'), rec.ticketId));
+    });
+  }
+  document.getElementById('printTicketBtn').addEventListener('click', ()=>window.print());
+
+  /* ---------------- my tickets ---------------- */
+  async function renderMyTickets(){
+    await syncFromServer();
+    const list = document.getElementById('myTicketsList');
+    list.innerHTML = '';
+    if(!session){ list.innerHTML = `<div class="empty-state">Log in to see your bookings.</div>`; return; }
+    const me = normalizePhone(session.phone);
+    const mine = bookings.filter(b=>normalizePhone(b.ownerPhone)===me).sort((a,b)=> b.bookedAt.localeCompare(a.bookedAt));
+    if(mine.length===0){ list.innerHTML = `<div class="empty-state">No bookings yet — search for a trip to get started.</div>`; return; }
+    mine.forEach(rec=>{
+      const row = document.createElement('div');
+      row.className='trip-card';
+      const cancelled = rec.status==='cancelled';
+      row.innerHTML = `
+        <div>
+          <div class="trip-route"><span>${esc(rec.from)}</span><span class="dash"></span><span>${esc(rec.to)}</span></div>
+          <div class="trip-meta"><span>${esc(rec.date)}</span><span>${esc(rec.time)}</span><span>Seat ${esc(rec.seat)}</span></div>
+          ${cancelled
+            ? `<span class="badge cancelled">Cancelled</span> ${(rec.refundStatus||'pending')==='refunded' ? '<span class="badge">Refunded</span>' : '<span class="badge pending">Refund pending</span>'}`
+            : `<span class="badge">${esc(rec.method)}</span>`}
+        </div>
+        <div style="text-align:right;">
+          <div class="fare">${money(rec.fare)}</div>
+          <button class="btn secondary" data-view-ticket="${esc(rec.ticketId)}">View ticket</button>
+        </div>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('[data-view-ticket]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const rec = bookings.find(b=>b.ticketId===btn.dataset.viewTicket);
+        if(!rec) return;
+        renderTicket([rec]);
+        showView('ticket');
+      });
+    });
+  }
+
+  /* ---------------- admin: login ---------------- */
+  document.getElementById('adminLoginForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const u = document.getElementById('adminUser').value.trim();
+    const p = document.getElementById('adminPass').value;
+    if(u===ADMIN_CREDENTIALS.username && p===ADMIN_CREDENTIALS.password){
+      adminSession = true;
+      document.getElementById('adminLoginErr').textContent='';
+      document.getElementById('adminLoginForm').reset();
+      renderAdmin();
+    } else {
+      document.getElementById('adminLoginErr').textContent = 'Invalid admin username or password.';
+    }
+  });
+  document.getElementById('adminLogoutBtn').addEventListener('click', ()=>{ adminSession=false; renderAdmin(); });
+
+  /* ---------------- admin: add route modal (fixed) ---------------- */
+  const routeModal = document.getElementById('routeModal');
+  const rtFrom = document.getElementById('rtFrom');
+  const rtTo = document.getElementById('rtTo');
+  TOWNS.forEach(t=>{ rtFrom.appendChild(new Option(t,t)); rtTo.appendChild(new Option(t,t)); });
+  rtTo.selectedIndex = 1;
+
+  function openRouteModal(){
+    document.getElementById('routeForm').reset();
+    rtFrom.selectedIndex = 0; rtTo.selectedIndex = 1;
+    document.getElementById('routeFormErr').textContent = '';
+    routeModal.classList.add('active');
+  }
+  function closeRouteModal(){ routeModal.classList.remove('active'); }
+  document.getElementById('openAddRoute').addEventListener('click', openRouteModal);
+  document.getElementById('closeRouteModal').addEventListener('click', closeRouteModal);
+  routeModal.addEventListener('click', e=>{ if(e.target===routeModal) closeRouteModal(); });
+
+  document.getElementById('routeForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const errEl = document.getElementById('routeFormErr');
+    const from = rtFrom.value, to = rtTo.value;
+    const time = document.getElementById('rtTime').value;
+    const duration = document.getElementById('rtDuration').value.trim();
+    const busType = document.getElementById('rtBusType').value.trim();
+    const fare = Number(document.getElementById('rtFare').value);
+    const totalSeats = Number(document.getElementById('rtSeats').value);
+
+    if(from===to){ errEl.textContent = 'From and To must be different towns.'; return; }
+    if(!time){ errEl.textContent = 'Choose a departure time.'; return; }
+    if(!duration || !busType){ errEl.textContent = 'Fill in the journey duration and bus type.'; return; }
+    if(!fare || fare<=0){ errEl.textContent = 'Enter a fare greater than zero.'; return; }
+    if(!totalSeats || totalSeats<4){ errEl.textContent = 'Enter at least 4 seats.'; return; }
+
+    refreshData();
+    if(routes.some(r=>r.from===from && r.to===to && r.time===time)){ errEl.textContent = 'A route with the same towns and departure time already exists.'; return; }
+    routes.push({id:uid('RT'), from, to, time, duration, busType, fare, totalSeats});
+    LS.set(KEYS.routes, routes);
+    closeRouteModal();
+    renderAdmin();
+  });
+
+  /* ---------------- admin: book for walk-in customer ---------------- */
+  const walkinModal = document.getElementById('walkinModal');
+  const wiRoute = document.getElementById('wiRoute');
+  const wiDate = document.getElementById('wiDate');
+  let wiSeats = [];
+
+  function wiRouteObj(){ return routes.find(r=>r.id===wiRoute.value) || null; }
+  function wiUpdate(){
+    const route = wiRouteObj();
+    const seats = wiSeats.slice().sort((a,b)=>a-b);
+    document.getElementById('wiSelected').textContent = seats.length ? seats.join(', ') : 'none';
+    document.getElementById('wiTotal').textContent = money(route ? route.fare*seats.length : 0);
+  }
+  function wiRenderSeats(){
+    refreshData();
+    const route = wiRouteObj(), date = wiDate.value;
+    const grid = document.getElementById('wiSeatGrid');
+    grid.innerHTML = '';
+    if(!route || !date){ wiSeats = []; wiUpdate(); return; }
+    const taken = new Set(bookings.filter(b=>b.status!=='cancelled' && b.routeId===route.id && b.date===date).map(b=>b.seat));
+    wiSeats = wiSeats.filter(n=>!taken.has(n));
+    const driver = document.createElement('div'); driver.className='seat driver'; driver.textContent='Driver';
+    for(let i=0;i<3;i++) grid.appendChild(document.createElement('div'));
+    grid.appendChild(driver);
+    for(let n=1; n<=route.totalSeats; n++){
+      const el = document.createElement('button');
+      el.type='button'; el.className='seat'; el.textContent=n; el.dataset.seat=n;
+      if(taken.has(n)){ el.classList.add('taken'); el.disabled=true; }
+      else if(wiSeats.includes(n)){ el.classList.add('selected'); }
+      el.addEventListener('click', ()=>{
+        const i = wiSeats.indexOf(n);
+        if(i===-1){ wiSeats.push(n); el.classList.add('selected'); }
+        else { wiSeats.splice(i,1); el.classList.remove('selected'); }
+        wiUpdate();
+      });
+      grid.appendChild(el);
+    }
+    wiUpdate();
+  }
+  function openWalkin(){
+    refreshData();
+    document.getElementById('walkinForm').reset();
+    document.getElementById('wiErr').textContent = '';
+    wiRoute.innerHTML = '';
+    routes.forEach(r=>wiRoute.appendChild(new Option(`${r.from} to ${r.to} · ${r.time} · ${money(r.fare)} · ${r.busType}`, r.id)));
+    wiDate.value = todayISO(); wiDate.min = todayISO();
+    wiSeats = [];
+    wiRenderSeats();
+    if(routes.length===0) document.getElementById('wiErr').textContent = 'There are no routes yet. Add a route first.';
+    walkinModal.classList.add('active');
+  }
+  function closeWalkin(){ walkinModal.classList.remove('active'); }
+  document.getElementById('openWalkin').addEventListener('click', openWalkin);
+  document.getElementById('closeWalkinModal').addEventListener('click', closeWalkin);
+  walkinModal.addEventListener('click', e=>{ if(e.target===walkinModal) closeWalkin(); });
+  wiRoute.addEventListener('change', ()=>{ wiSeats = []; wiRenderSeats(); });
+  wiDate.addEventListener('change', ()=>{ wiSeats = []; wiRenderSeats(); });
+
+  document.getElementById('walkinForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const errEl = document.getElementById('wiErr');
+    errEl.textContent = '';
+    if(!adminSession){ errEl.textContent = 'Admin session expired. Please sign in again.'; return; }
+    refreshData();
+    const route = wiRouteObj(), date = wiDate.value;
+    const name = document.getElementById('wiName').value.trim();
+    const phone = normalizePhone(document.getElementById('wiPhone').value);
+    const idNumber = document.getElementById('wiId').value.trim();
+    const method = document.getElementById('wiMethod').value;
+    const ref = document.getElementById('wiRef').value.trim().toUpperCase();
+    if(!route){ errEl.textContent = 'Choose a trip.'; return; }
+    if(!date || date < todayISO()){ errEl.textContent = 'Choose today or a later date.'; return; }
+    if(date===todayISO() && route.time <= nowHM()){ errEl.textContent = 'That bus has already departed today. Choose another trip or date.'; return; }
+    if(wiSeats.length===0){ errEl.textContent = 'Select at least one seat.'; return; }
+    if(!name || !idNumber){ errEl.textContent = 'Enter the passenger name and ID number.'; return; }
+    if(!validPhone(phone)){ errEl.textContent = 'Enter a valid Kenyan phone number (07XX XXX XXX or 01XX XXX XXX).'; return; }
+    const taken = new Set(bookings.filter(b=>b.status!=='cancelled' && b.routeId===route.id && b.date===date).map(b=>b.seat));
+    const clash = wiSeats.filter(n=>taken.has(n));
+    if(clash.length){ wiRenderSeats(); errEl.textContent = `Seat${clash.length>1?'s':''} ${clash.join(', ')} ${clash.length>1?'were':'was'} just booked. Please pick again.`; return; }
+
+    const bookingId = uid('BK');
+    const records = wiSeats.slice().sort((a,b)=>a-b).map(seat=>({
+      ticketId: newTicketId(), bookingId,
+      routeId: route.id, from:route.from, to:route.to, time:route.time, busType:route.busType,
+      date, seat, fare:route.fare,
+      passenger:name, phone, idNumber,
+      method, paymentRef: ref || undefined,
+      // owner = passenger's phone, so the ticket also appears in My tickets if they later register with this number
+      ownerPhone: phone, bookedBy:'admin', bookedAt: new Date().toISOString()
+    }));
+    records.forEach(r=>bookings.push(r));
+    LS.set(KEYS.bookings, bookings);
+    closeWalkin();
+    renderTicket(records);
+    showView('ticket');
+    document.getElementById('ticketBackAdmin').style.display = 'inline-block';
+  });
+
+  /* ---------------- admin: cancel + refund helpers ---------------- */
+  // Tickets bought together share a bookingId; older records fall back to owner+route+date+booking time (to the second)
+  function groupKey(b){ return b.bookingId || [b.ownerPhone,b.routeId,b.date,(b.bookedAt||'').slice(0,19)].join('|'); }
+  function cancelByIds(ids){
+    refreshData();
+    const now = new Date().toISOString();
+    bookings.forEach(rec=>{
+      if(ids.includes(rec.ticketId) && rec.status!=='cancelled'){
+        rec.status = 'cancelled'; rec.cancelledAt = now; rec.cancelledBy = 'admin';
+        rec.refundStatus = 'pending'; rec.refundAmount = rec.fare;
+      }
+    });
+    LS.set(KEYS.bookings, bookings);
+  }
+
+  /* ---------------- admin: render ---------------- */
+  let pendingDeleteId = null;
+  let pendingCancelId = null;
+
+  function renderAdmin(){
+    document.getElementById('adminLoggedOut').style.display = adminSession ? 'none':'block';
+    document.getElementById('adminLoggedIn').style.display = adminSession ? 'block':'none';
+    if(!adminSession) return;
+    refreshData();
+
+    const activeBookings = bookings.filter(b=>b.status!=='cancelled');
+    const totalRevenue = activeBookings.reduce((t,b)=>t+b.fare,0);
+    const pendingRefundTotal = bookings.filter(b=>b.status==='cancelled' && (b.refundStatus||'pending')==='pending').reduce((t,b)=>t+b.fare,0);
+    document.getElementById('adminStats').innerHTML = `
+      <div class="stat"><div class="num">${routes.length}</div><div class="lbl">Active routes</div></div>
+      <div class="stat"><div class="num">${activeBookings.length}</div><div class="lbl">Tickets sold</div></div>
+      <div class="stat"><div class="num">${money(totalRevenue)}</div><div class="lbl">Total revenue</div></div>
+      <div class="stat"><div class="num">${users.length}</div><div class="lbl">Registered customers</div></div>
+      <div class="stat"><div class="num">${money(pendingRefundTotal)}</div><div class="lbl">Refunds pending</div></div>`;
+
+    const small = 'padding:5px 10px; font-size:0.78rem;';
+    const tbody = document.querySelector('#routesTable tbody');
+    tbody.innerHTML = '';
+    if(routes.length===0){
+      tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center; padding:20px;">No routes yet — add one above.</td></tr>`;
+    }
+    routes.forEach(r=>{
+      const tr = document.createElement('tr');
+      const isPending = pendingDeleteId === r.id;
+      const live = bookings.filter(b=>b.routeId===r.id && b.status!=='cancelled').length;
+      const confirmLabel = live ? `Confirm delete (cancels ${live} ticket${live>1?'s':''})` : 'Confirm delete';
+      tr.innerHTML = `<td>${esc(r.from)}</td><td>${esc(r.to)}</td><td>${esc(r.time)}</td><td>${esc(r.busType)}</td><td>${money(r.fare)}</td><td>${esc(r.totalSeats)}</td>
+        <td>
+          ${isPending
+            ? `<span class="inline-confirm" style="flex-wrap:wrap;"><button class="btn danger" data-confirm-del="${esc(r.id)}" style="${small}">${confirmLabel}</button><button class="btn secondary" data-cancel-del="${esc(r.id)}" style="${small}">Cancel</button></span>`
+            : `<button class="btn secondary" data-del-route="${esc(r.id)}" style="${small}">Delete</button>`}
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('[data-del-route]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ pendingDeleteId = btn.dataset.delRoute; renderAdmin(); });
+    });
+    tbody.querySelectorAll('[data-cancel-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ pendingDeleteId = null; renderAdmin(); });
+    });
+    tbody.querySelectorAll('[data-confirm-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.dataset.confirmDel;
+        refreshData();
+        // Deleting a route also cancels its live tickets so customers aren't left holding tickets for a bus that no longer exists
+        cancelByIds(bookings.filter(b=>b.routeId===id && b.status!=='cancelled').map(b=>b.ticketId));
+        routes = routes.filter(r=>r.id!==id);
+        LS.set(KEYS.routes, routes);
+        pendingDeleteId = null;
+        renderAdmin();
+      });
+    });
+
+    const btbody = document.querySelector('#bookingsTable tbody');
+    btbody.innerHTML = '';
+    if(bookings.length===0){
+      btbody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding:20px;">No bookings yet.</td></tr>`;
+      return;
+    }
+    bookings.slice().reverse().forEach(b=>{
+      const tr = document.createElement('tr');
+      const cancelled = b.status==='cancelled';
+      const refund = b.refundStatus || 'pending';
+      if(cancelled) tr.className = 'row-cancelled';
+      let status, action = '';
+      if(cancelled){
+        status = `<span class="badge cancelled">Cancelled</span> ` +
+                 (refund==='refunded' ? `<span class="badge">Refunded</span>` : `<span class="badge pending">Refund pending</span>`);
+        if(refund!=='refunded') action = `<button class="btn secondary" data-mark-refunded="${esc(b.ticketId)}" style="${small}">Mark refunded</button>`;
+      } else {
+        status = `<span class="badge">Confirmed</span>`;
+        if(pendingCancelId === b.ticketId){
+          const siblings = bookings.filter(x=>x.status!=='cancelled' && x.ticketId!==b.ticketId && groupKey(x)===groupKey(b));
+          action = `<span class="inline-confirm" style="flex-wrap:wrap;">
+            <button class="btn danger" data-confirm-cancel="${esc(b.ticketId)}" style="${small}">Cancel this ticket</button>
+            ${siblings.length ? `<button class="btn danger" data-confirm-cancel-all="${esc(b.ticketId)}" style="${small}">Cancel all ${siblings.length+1} in booking</button>` : ''}
+            <button class="btn secondary" data-abort-cancel="${esc(b.ticketId)}" style="${small}">Keep</button></span>`;
+        } else {
+          action = `<button class="btn secondary" data-cancel-booking="${esc(b.ticketId)}" style="${small}">Cancel ticket</button>`;
+        }
+      }
+      tr.innerHTML = `<td>${esc(b.ticketId)}</td><td>${esc(b.passenger)}</td><td>${esc(b.from)} to ${esc(b.to)}</td><td>${esc(b.date)}</td><td>${esc(b.seat)}</td><td>${money(b.fare)}</td><td>${esc(b.method)}${b.bookedBy==='admin' ? ' <span class="badge" style="background:var(--orange-tint); color:var(--orange-dark);">Counter</span>' : ''}</td><td>${status}</td><td>${action}</td>`;
+      btbody.appendChild(tr);
+    });
+    btbody.querySelectorAll('[data-cancel-booking]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ pendingCancelId = btn.dataset.cancelBooking; renderAdmin(); });
+    });
+    btbody.querySelectorAll('[data-abort-cancel]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ pendingCancelId = null; renderAdmin(); });
+    });
+    btbody.querySelectorAll('[data-confirm-cancel]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ cancelByIds([btn.dataset.confirmCancel]); pendingCancelId = null; renderAdmin(); });
+    });
+    btbody.querySelectorAll('[data-confirm-cancel-all]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        refreshData();
+        const rec = bookings.find(x=>x.ticketId===btn.dataset.confirmCancelAll);
+        if(rec) cancelByIds(bookings.filter(x=>x.status!=='cancelled' && groupKey(x)===groupKey(rec)).map(x=>x.ticketId));
+        pendingCancelId = null; renderAdmin();
+      });
+    });
+    btbody.querySelectorAll('[data-mark-refunded]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        refreshData();
+        const rec = bookings.find(x=>x.ticketId===btn.dataset.markRefunded);
+        if(rec){ rec.refundStatus = 'refunded'; rec.refundedAt = new Date().toISOString(); LS.set(KEYS.bookings, bookings); }
+        renderAdmin();
+      });
+    });
+  }
+
+  // Keep this tab in sync when another tab changes routes, bookings or accounts
+  window.addEventListener('storage', e=>{
+    if(![KEYS.routes, KEYS.bookings, KEYS.users].includes(e.key)) return;
+    refreshData();
+    if(document.getElementById('view-admin').classList.contains('active')) renderAdmin();
+    if(document.getElementById('view-mytickets').classList.contains('active')) renderMyTickets();
+    if(document.getElementById('view-home').classList.contains('active') && document.getElementById('resultsPanel').style.display==='block') runSearch();
+  });
+
+  /* ---------------- init ---------------- */
+  (async function init(){
+    const {data} = await sb.auth.getSession();
+    const u = data.session && data.session.user;
+    if(u) session = {name:u.user_metadata.name, phone:u.user_metadata.phone};
+    renderAuthArea();
+    showView('home');
+  })();
+})();
+</script>
+</body>
+</html>
